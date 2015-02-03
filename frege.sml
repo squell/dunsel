@@ -162,7 +162,7 @@ fun or_ex_rule pq pz qz =
  * 2 - logical connectives (perhaps less surprising & less fun)
  *******************************************)
 
-val format = ref 1
+val format = ref 2
 
 fun pretty b = format := b
 
@@ -299,12 +299,6 @@ fun prgoal (hs,g) =
 
 val history : goalstate list ref = ref []
 
-val implicit_p = ref (fn()=>())
-
-fun g (p: prop) = (history := [mkgoal p]; !implicit_p())
-
-fun b () = (history := tl (!history); !implicit_p())
-
 fun p () =
   let
     val (x,y) = hd (!history)
@@ -312,6 +306,12 @@ fun p () =
     if null x then print "Proof completed, type qed().\n" else
     print (concatWith "\n[===========]\n\n" (rev (map prgoal x)))
   end
+
+val implicit_p = ref (fn()=>p())
+
+fun g (p: prop) = (history := [mkgoal p]; !implicit_p())
+
+fun b () = (history := tl (!history); !implicit_p())
 
 fun e (tac: tactic) =
   let
@@ -526,3 +526,24 @@ val pq_or_qp: thm = `"(p->q)|(q->p)"
 (* again this proof is much easier if you stop fighting the internal logic *)
 
 val pq_or_qp2: thm = `"(p->q)|(q->p)" PROOF [intros, quodlibet, apply, intros, assumption]
+
+(********Example 7: commutativity/associativity for | and & ******)
+
+fun commute_and (t: thm): thm = 
+  cleanup (and_in_rule (and_ex2_rule t) (and_ex1_rule t))
+
+fun commute_or (t: thm): thm = 
+  let
+    val p = or_in1_rule (right (concl t)) (assume (left  (concl t)))
+    val q = or_in2_rule (left  (concl t)) (assume (right (concl t)))
+  in
+    or_ex_rule t (mktaut p) (mktaut q)
+  end 
+
+fun commutativity (hs, p) = 
+  if isDisj p then
+    ([(hs, disj (right p) (left p))], fn [t] => commute_or t)
+  else if isConj p then
+    ([(hs, conj (right p) (left p))], fn [t] => commute_and t)
+  else
+    raise Mistake
