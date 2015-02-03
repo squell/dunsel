@@ -143,7 +143,7 @@ fun paranoid () = let val (x,y)=(Var"x",Var"y") in
 
 fun or_in1_rule q t = elim_rule (or_in1_thm (concl t) q) t
 fun or_in2_rule q t = elim_rule (or_in2_thm (concl t) q) t
-fun and_in_rule t u = elim_rule (and_in_thm (concl t) (concl u)) t
+fun and_in_rule t u = elim_rule (elim_rule (and_in_thm (concl t) (concl u)) t) u
 
 fun and_ex1_rule t = elim_rule (and_ex1_thm (concl t)) t
 fun and_ex2_rule t = elim_rule (and_ex2_thm (concl t)) t
