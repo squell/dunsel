@@ -203,17 +203,25 @@ exception Mistake
 type justifier = thm list -> thm
 
 type goal = prop list * prop;
-type goalstate = goal list * justifier
+type goalstate = goal list * thm
 
-type tactic = goal -> goalstate
+type tactic = goal -> goal list * justifier
 
-fun by (tac: tactic) ((gs, jf): goalstate): goalstate =
+fun by (tac: tactic) ((gs, jt): goalstate): goalstate =
   if null gs then raise Mistake else
   let
+    (* [a,b],c => a->b->c, a, b |- c*)
+	fun mp (hyps, g) = let
+	  fun mp' [] tm = tm
+	    | mp' (h::hs) tm = mp' hs (elim_rule tm (assume h))
+	in
+	  mp' hyps (assume (foldr Arrow g hyps))
+	end
     val (gs',jf') = tac (hd gs)
-    val n = length gs'
+	val jt'' = jf' (map mp gs')
+	val jt' = foldr (fn(x,y)=>intro_rule x y) jt'' (#1 (hd gs))
   in
-    (gs' @ tl gs, fn ts => jf (jf'(List.take(ts,n)) :: List.drop(ts,n)))
+    (gs' @ tl gs, cut_rule jt' jt)
   end
   
 val assumption: tactic = fn (hs,p) =>
@@ -271,10 +279,10 @@ fun or_ex_tac (pq:prop): tactic = fn (hs, z) =>
 (* Using tactics non-interactively
  ***********************************)
 
-fun mkgoal p = ([([], p)], hd)
+fun mkgoal p = ([([], p)], assume p)
 
 fun PROOF (p: prop, ts: tactic list): thm = 
-  let val ([],qed) = call (map by ts) (mkgoal p) in qed[] end
+  let val ([],qed) = call (map by ts) (mkgoal p) in qed end
 
 infix 5 PROOF
 
@@ -315,7 +323,7 @@ fun e (tac: tactic) =
 
 fun qed () =
   let val ([], f) = hd (!history) in
-    f []
+    f
   end handle NonSequitur x => (print "Tactical Error:\n"; 
                                print (concatWith "\n" (map prprop x));
                                print "***\n";
