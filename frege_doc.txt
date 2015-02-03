@@ -1,0 +1,165 @@
+Frege
+--------
+
+"Frege" is a tiny toy LCF-style proof assistant written in Standard ML;
+its proof kernel only knows about implications and falsum (and is so tiny
+that it is surely correct), but it handles other logical connectives in
+the parser/pretty printer fase, which has some curious consequences.
+
+In particular, "p|~p" (or "~p|p") can be proved without needing 'absurd_rule'.
+
+Understanding the code
+----------------------
+
+Data types:
+
+  prop - a type describing a proposition, either a variable or "prop -> prop".
+
+  thm  - abstract datatype, representing a theorem (i.e. a proved
+         statement); only the kernel can create objects of this datatype.
+
+Kernel functions: (create objects of 'thm', so hese need to be 'trusted'):
+
+  assume: prop -> thm
+       - given a proposition P, constructs "P |- P"
+  intro_rule: prop -> thm -> thm
+       -for a prop "P", perform "a.., P, b.. |- Q" => "a.., b.. |- P->Q"
+  elim_rule: thm -> thm -> thm
+       - modus ponens, i.e. "a.. |- P" and "b.. |- P->Q", --> "a.., b.. |- Q"
+
+  absurd_rule: thm -> thm
+       - classical double-negation, i.e. "a.. | ~~P" -> "a.. | P"
+
+Auxiliary kernel: (do not need to be trusted)
+  dest_thm: thm -> prop list * prop
+       - exposes the list of hypotheses and the conclusion as props
+  
+Utility functions:
+
+  hyp, concl - return the list of hypotheses or the conclusion of a thm
+
+  isArrow/isVar/ante/consq - functions to inspects props
+
+  call fs: compose a list of functions fs to a single function
+
+Logical functions (not part of the kernel):
+
+   exfalso: prop -> thm -> thm
+        - given "A |- _", construct the "A |- Q" (ex falso quod libet)
+
+   cut_rule: thm -> thm -> thm
+        - given "a.. |- P" and "b.. |- Q", create "a.., b'.. |- Q", 
+          where b'.. = b..\{P}, if P in b...
+
+Example functions built upon the kernel
+ 
+   mktaut: convert a thm into a hypotheses-less tautology
+   mksequent: do the inverse
+   cleanup: eliminates implications that are known to be true
+   simplify: cleanup + mksequent + remove duplicate hypotheses
+
+Emulated logical connectives
+-----------------------------------------
+
+A disjunction "P|Q" is encoded as "(P->_)->Q", and a conjunction as
+"(P->(Q->_))->_". "Not" is encoded as "P->_". This has nothing to do
+with the proof kernel: we simple define these things, and then establish
+the familiar introduction/elimination axioms as theorems.
+
+  conj/disj: construct conjunctive or disjunctive prop
+  isConj/isDisj/isImpl: differentiate between these definitions
+  left/right: give the lefthand or righthand side of emulated connective
+
+Theorems about the emulated connectives (proved using the kernel)
+(these should reinforce the idea that our definitions are correct)
+
+  - and_in_thm/rule: ("P, Q" -> "P&Q")
+  - or_in_thm/rule : ("P" -> "P|Q" or "Q|P")
+
+  - and_ex_thm/rule: ("P&Q" -> "P" or "Q")
+  - or_ex_thm/rule : ("P|Q" + "P->Z" + "Q->Z" -> "Z")
+
+
+Pretty printer/Parser
+-----------------------------------------
+
+  format: global variable denoting the level of translation to perform (0/1/2)
+
+  prprop: prop -> string
+  prthm : thm  -> string
+  prgoal: goal -> string (see below)
+
+  ` : string -> prop
+
+  some functions are available in a "prime" version, which takes strings
+  as input instead of the 'prop' ML datatype, e.g. assume', intro_rule',
+  exfalso', e', g'
+
+Tactics subsystem
+-----------------------------------------
+
+Datatypes/functions:
+
+  goal      - essentially a thm which has not yet been proved
+  goalstate - a list of goals (which needs to be turned into thms),
+              coupled with a 'justifier', which finishes the proof by
+              returning the required thm
+
+   in frege1.sml, the "justifier" from a tactic is used as is to construct
+   a new "justifier" i.e. this solves the problem of wrapping up the
+   proof using functional programming in frege2.sml, instead a 'thm'
+   of the form "hyp1, hyp2 |- result" is used; justifiers from tactics
+   are applied immediately. this solves the problem using pure logic.
+
+  tactic    - goal -> goal list * justifier
+
+  by: tactic -> goalstate -> goalstate 
+       - applies a tactic to the first goal in a goalstate
+
+Basic tactics:
+  
+  assumption - the goal to be proved is already in the list of assumptions
+
+  intro_tac      - try to construct an implicatin
+  elim_tac prop  - modus ponens
+
+  quodlibet      - try to prove the current goal by proving 'bottom' instead
+  absurd_tac     - start a proof by contradiction
+
+Tactics for emulated logic:
+
+   and_in_tac, and_ex1_tac prop, and_ex2_tac prop
+   or_in1_tac, or_in2_tac, or_ex_tac prop
+
+Example tactics:
+
+   intros   - apply intro_tac multiple times
+   claim    - add something to the list of hypotheses
+   apply    - try to obtain the goal by applying a known implication
+   genapply - generalized apply
+   simple   - automated prover. sort of.
+
+Utility functions for non-interactive tactics:
+
+   x PROOF y: prop -> tactic list -> thm
+                 - proof prop by applying the tactics in order
+
+   mkgoal: prop -> goalstate
+
+Interactive prover
+-----------------------------------------
+
+Start frege, then use the functions:
+
+   pretty <n>    - to set the level of formatting
+   
+   history       - show the proof history`
+
+   p ()          - print the proof state
+   g prop        - add 'prop' to the list of goals  
+   b ()          - go back one step in the proof
+   e tac         - apply the tactic 'tac' to the current goalstate
+   qed()         - signal that the proof is complete
+
+   v True/False  - whether or not to print a proofstate after each command
+
