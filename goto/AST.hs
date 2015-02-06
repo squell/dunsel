@@ -2,6 +2,7 @@ module AST
 where
 
 data Expr = 
+	Scope Int Expr |
 	Skip |
 	Const Value |
 	Val Var |

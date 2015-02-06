@@ -1,3 +1,4 @@
+import Prelude hiding (length, take, replicate)
 import Data.Sequence
 import AST
 
@@ -21,3 +22,7 @@ sem (While a b)  = sem a >: \x->sem $ if x/=0 then b:::While a b else Skip
 sem (DyOp f a b) = sem a >: \x->sem b >: \y-> val $ f x y
 sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a >: \_->sem b
+
+sem (Scope n a)  = (sem a.enter) >: \x s -> (leave s, x)
+  where enter s = s>< replicate n undefined
+        leave s = take (length s - n) s
