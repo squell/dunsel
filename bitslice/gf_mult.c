@@ -35,16 +35,14 @@ void slice(const byte *in, byte *out)
 
 /* shift 8 bytes to the left & conditional xor */
 
-void bitslice_shift(byte *x, int poly)
+void bitslice_shift(byte *x, int poly, int lsb)
 {
 	int i;
-	byte mask = x[7];
-	for(i=7; i>=1; i--) 
-		x[i] = x[i-1];
-	x[0] = 0;
+	byte mask = x[lsb];
+	x[lsb] = 0;
 
 	for(i=0; i<8; i++, poly >>= 1)
-		x[i] ^= mask & -(poly&1);
+		x[i+lsb&7] ^= mask & -(poly&1);
 }
 
 /* multiplication loop */
@@ -56,9 +54,9 @@ void bitslice_mul(byte *x, byte *y, byte *z, int poly)
 	do {
 		int i;
 		for(i=0; i<8; i++)
-			z[i] ^= x[i] & y[pos];
+			z[i] ^= x[i+(8-pos)&7] & y[pos];
 		if(++pos == 8) break;
-		bitslice_shift(x, poly);
+		bitslice_shift(x, poly, 8-pos);
 	} while(1);
 }
 
