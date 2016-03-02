@@ -1,6 +1,5 @@
 /* Constant time memmcp */
 
-#include <limits.h>
 #include <stdio.h>
 
 int memcmp_consttime(const void *s1, const void *s2, size_t n)
@@ -8,7 +7,7 @@ int memcmp_consttime(const void *s1, const void *s2, size_t n)
     unsigned const char *p1 = s1, *p2 = s2;
     int c = 0;
     while(n--)
-        c |= (*p1++ - *p2++) & ~(-c|c) >> CHAR_BIT;
+        c |= (*p1++ - *p2++) & -!c;
     return c;
 }
 
