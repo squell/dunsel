@@ -45,11 +45,11 @@ gf_mul_s:
     xor rax, rax
     .rept 8
     .rept 8
+    rol rdi, 8
     mov dl, dil
     and dl, sil
     xor al, dl
-    rol rax, 8
-    rol rdi, 8
+    ror rax, 8
     .endr
     slice_shl poly
     shr rsi, 8
@@ -66,6 +66,5 @@ bitslice_mul_s:
     bswap rdi # invert byte order for easy access to MSB of X
     slice_mul cl
     pop rdx
-    bswap rax
     mov [rdx], rax
     ret
