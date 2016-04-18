@@ -29,16 +29,12 @@ gf_mul_s:
 
 # implicit argument: rdi
 .macro slice_shl poly
-    bswap rdi
-    mov dl, dil
-    mov dh, dl
-    bswap rdi
-
-    shl rdi, 8
+    mov sil, dil
+    shr rdi, 8
     mov ch, poly
     .rept 8
-    gf shr ch, dil, dh, dl
-    ror rdi, 8
+    rol rdi, 8
+    gf shr ch, dil, sil, dl
     .endr
 .endm
 
@@ -67,7 +63,9 @@ bitslice_mul_s:
     push rdx
     mov rdi, [rdi]
     mov rsi, [rsi]
+    bswap rdi # invert byte order for easy access to MSB of X
     slice_mul cl
     pop rdx
+    bswap rax
     mov [rdx], rax
     ret
