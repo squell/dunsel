@@ -7,21 +7,30 @@
 
 POLY = 0x169
 
+.macro maybe op reg, arg
+.if arg
+op reg, arg
+.endif
+.endm
+
 # bitsliced-version
 
 # implicit argument: rdi
 .macro slice_shl poly
-local i
+local i pos
 i=0
+pos=1
     mov sil, dil
-    shr rdi, 8
+    xor dil, dil
     .rept 8
-    rol rdi, 8
     .if poly and (1 << i)
+    maybe rol rdi, (i+1-pos)*8
     xor dil, sil
+    pos=i+1
     .endif
     i=i+1
     .endr
+    maybe rol rdi, (8-pos)*8
 .endm
 
 # x = rdi
