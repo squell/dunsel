@@ -7,25 +7,20 @@
 
 POLY = 0x169
 
-# shift reg; xor poly into dst if carry
-
-.macro gf op reg, dst, poly, tmp=ecx
-    op reg, 1
-    sbb tmp, tmp
-    and tmp, poly
-    xor dst, tmp
-.endm
-
 # bitsliced-version
 
 # implicit argument: rdi
 .macro slice_shl poly
+local i
+i=0
     mov sil, dil
     shr rdi, 8
-    mov ch, poly
     .rept 8
     rol rdi, 8
-    gf shr ch, dil, sil, dl
+    .if poly and (1 << i)
+    xor dil, sil
+    .endif
+    i=i+1
     .endr
 .endm
 
