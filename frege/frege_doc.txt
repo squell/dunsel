@@ -18,7 +18,7 @@ Data types:
   thm  - abstract datatype, representing a theorem (i.e. a proved
          statement); only the kernel can create objects of this datatype.
 
-Kernel functions: (create objects of 'thm', so hese need to be 'trusted'):
+Kernel functions: (create objects of 'thm', so these need to be 'trusted'):
 
   assume: prop -> thm
        - given a proposition P, constructs "P |- P"
