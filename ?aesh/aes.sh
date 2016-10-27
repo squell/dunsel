@@ -61,7 +61,7 @@ shift_rows() {
 # mix_column operation
 mix_element() {
 	b=$(( ($1^$2)<<1 ^ $2 ^ $3 ^ $4 ))
-	echo $((b >= 0x100? b^0x11b : b))
+	echo $(( b^(0xff - b >> 8)&0x11b ))
 }
 
 mix_columns() {
