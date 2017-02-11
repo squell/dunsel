@@ -26,18 +26,21 @@ enter n (State stack x labels) = State (stack >< replicate n undefined) x labels
 leave :: Int -> ST
 leave n (State stack x labels) = State (take (length stack - n) stack) x labels
 
+-- can't use pattern matching on the argument in these functions
+-- as this will force strict evaluation of the state
 (<@) :: State -> [(Int, ST)] -> State
---(State stack x labels) <@ tag = State stack x (tag++labels)
 st <@ tag = State (stack st) (result st) (tag++labels st)
 
-(=:@) :: State -> [(Int, ST)] -> State
---(State stack x labels) =:@ tag = State stack x tag   this is subtly wrong, as it forces evaluation
-st =:@ tag = State (stack st) (result st) tag
+(>@<) :: State -> State -> State
+st >@< st' = st <@ labels st'
+
+(=:@) :: State -> State -> State
+st =:@ tag = State (stack st) (result st) (labels tag)
 
 (>:) :: Cont -> (Value->ST) -> Cont
 --(>:) f g k = f (\st->k (g (result st) st))
 (>:) f g = f >:: (\x->(.g x))
---
+
 (>::) :: Cont -> (Value->Cont) -> Cont
 (>::) f g k = f (\st->g (result st) k st)
 
@@ -46,13 +49,13 @@ sem Skip         = (.val undefined)
 sem (Const i)    = (.val i)
 sem (Var i := e) = sem e >: put i
 sem (Val (Var i))= (.get i)
-sem (If a b c)   = sem a >:: \x k st->(sem $ if x/=0 then b else c) k st =:@ labels (sem b k st <@ labels (sem c k st))
+sem (If a b c)   = sem a >:: \x k st->(sem $ if x/=0 then b else c) k st =:@ (sem b k st >@< sem c k st)
 sem (While a b)  = sem (If a (b:::While a b) Skip)
 sem (DyOp f a b) = sem a >:: \x->sem b >: \y-> val $ f x y
 sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a . sem b
 
-sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st =:@ labels (k st)
+sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st =:@ k st
 sem (Label i)    = \k->(<@ [(i,k)]).k
 
 -- this is too simplistic
@@ -63,10 +66,10 @@ eval_once e = result $ sem e id initial
    where initial = State empty undefined []
 
 eval' :: Expr -> Value
-eval' e = result $ sem e id (initial =:@ labels (sem e id initial))
+eval' e = result $ sem e id (initial =:@ sem e id initial)
    where initial = State empty undefined []
 
 eval :: Expr -> Value
-eval e = result $ sem e id (initial =:@ labels (sem e id illegal))
+eval e = result $ sem e id (initial =:@ sem e id illegal)
    where initial = State empty undefined []
          illegal = State undefined undefined []
