@@ -18,3 +18,6 @@ data Expr =
 newtype Var = Var Int 
 
 type Value = Int
+
+infixr 7 :=
+infixl 6 :::

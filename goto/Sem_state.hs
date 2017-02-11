@@ -1,3 +1,6 @@
+module Sem_state
+where
+
 import Prelude hiding (length, take, replicate)
 import Data.Sequence
 import AST
@@ -16,7 +19,7 @@ get :: Int -> ST
 get i s = State (stack s) (index (stack s) i)
 
 enter :: Int -> ST
-enter n s = State (stack s>< replicate n undefined) (result s)
+enter n s = State (stack s >< replicate n undefined) (result s)
 
 leave :: Int -> ST
 leave n s = State (take (length (stack s) - n) (stack s)) (result s)
@@ -36,3 +39,7 @@ sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem b . sem a
 
 sem (Scope n a)  = leave n.sem a.enter n
+
+eval :: Expr -> Value
+eval e = result $ sem e initial
+   where initial = State empty undefined

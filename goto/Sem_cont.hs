@@ -1,3 +1,6 @@
+module Sem_cont
+where
+
 import Prelude hiding (length, take, replicate)
 import Data.Sequence
 import Data.Maybe
@@ -18,7 +21,7 @@ get :: Int -> ST
 get i (State stack _ labels) = State stack (index stack i) labels
 
 enter :: Int -> ST
-enter n (State stack x labels) = State (stack>< replicate n undefined) x labels
+enter n (State stack x labels) = State (stack >< replicate n undefined) x labels
 
 leave :: Int -> ST
 leave n (State stack x labels) = State (take (length stack - n) stack) x labels
@@ -48,16 +51,12 @@ sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a . sem b
 
 sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st
-sem (Label i)    = \k->(<@ [(i,k)]).k
+--sem (Label i)    = \k->(<@ [(i,k)]).k    this doesn't allow backward jumps
+sem (Label i)    = \k->k.(<@ [(i,k)])
 
 -- this is too simplistic
 sem (Scope n a)  = \k->sem a (k.leave n).enter n
 
-labels :: Expr -> [Int]
-labels (Var _ := e) = labels e
-labels (If a b c)   = labels a ++ labels b ++ labels c
-labels (While a b)  = labels a ++ labels b
-labels (DyOp _ a b) = labels a ++ labels b
-labels (UnOp _ a)   = labels a
-labels (a ::: b)    = labels a ++ labels b
-labels _ = []
+eval :: Expr -> Value
+eval e = result $ sem e id initial
+   where initial = State empty undefined []

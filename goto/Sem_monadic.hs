@@ -1,3 +1,6 @@
+module Sem_monadic
+where
+
 import Prelude hiding (length, take, replicate)
 import Data.Sequence
 import AST
@@ -24,5 +27,8 @@ sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a >: \_->sem b
 
 sem (Scope n a)  = (sem a.enter) >: \x s -> (leave s, x)
-  where enter s = s>< replicate n undefined
+  where enter s = s >< replicate n undefined
         leave s = take (length s - n) s
+
+eval :: Expr -> Value
+eval e = snd $ sem e empty
