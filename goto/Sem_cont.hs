@@ -41,15 +41,12 @@ st =:@ tag = State (stack st) (result st) tag
 (>::) :: Cont -> (Value->Cont) -> Cont
 (>::) f g k = f (\st->g (result st) k st)
 
-sem' :: (Expr,Expr) -> Cont
-sem' (active,passive) = \k st->sem active k st <@ labels (sem passive k st)
-
 sem :: Expr -> Cont
 sem Skip         = (.val undefined)
 sem (Const i)    = (.val i)
 sem (Var i := e) = sem e >: put i
 sem (Val (Var i))= (.get i)
-sem (If a b c)   = sem a >:: \x->sem' $ if x/=0 then (b,c) else (c,b)
+sem (If a b c)   = sem a >:: \x k st->(sem $ if x/=0 then b else c) k st =:@ labels (sem b k st <@ labels (sem c k st))
 sem (While a b)  = sem (If a (b:::While a b) Skip)
 sem (DyOp f a b) = sem a >:: \x->sem b >: \y-> val $ f x y
 sem (UnOp f a)   = sem a >: \x->val $ f x
