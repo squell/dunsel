@@ -27,7 +27,12 @@ leave :: Int -> ST
 leave n (State stack x labels) = State (take (length stack - n) stack) x labels
 
 (<@) :: State -> [(Int, ST)] -> State
-(State stack x labels) <@ tag = State stack x (tag++labels)
+--(State stack x labels) <@ tag = State stack x (tag++labels)
+st <@ tag = State (stack st) (result st) (tag++labels st)
+
+(=:@) :: State -> [(Int, ST)] -> State
+--(State stack x labels) =:@ tag = State stack x tag   this is subtly wrong, as it forces evaluation
+st =:@ tag = State (stack st) (result st) tag
 
 (>:) :: Cont -> (Value->ST) -> Cont
 --(>:) f g k = f (\st->k (g (result st) st))
@@ -50,13 +55,21 @@ sem (DyOp f a b) = sem a >:: \x->sem b >: \y-> val $ f x y
 sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a . sem b
 
-sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st
---sem (Label i)    = \k->(<@ [(i,k)]).k    this doesn't allow backward jumps
-sem (Label i)    = \k->k.(<@ [(i,k)])
+sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st =:@ labels (k st)
+sem (Label i)    = \k->(<@ [(i,k)]).k
 
 -- this is too simplistic
 sem (Scope n a)  = \k->sem a (k.leave n).enter n
 
-eval :: Expr -> Value
-eval e = result $ sem e id initial
+eval_once :: Expr -> Value
+eval_once e = result $ sem e id initial
    where initial = State empty undefined []
+
+eval' :: Expr -> Value
+eval' e = result $ sem e id (initial =:@ labels (sem e id initial))
+   where initial = State empty undefined []
+
+eval :: Expr -> Value
+eval e = result $ sem e id (initial =:@ labels (sem e id illegal))
+   where initial = State empty undefined []
+         illegal = State undefined undefined []
