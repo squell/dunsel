@@ -49,6 +49,7 @@ sem Skip         = (.val undefined)
 sem (Const i)    = (.val i)
 sem (Var i := e) = sem e >: put i
 sem (Val (Var i))= (.get i)
+-- note: the order of the arguments to >@< is crucial
 sem (If a b c)   = sem a >:: \x k st->(sem $ if x/=0 then b else c) k st =:@ (sem b k st >@< sem c k st)
 sem (While a b)  = sem (If a (b:::While a b) Skip)
 sem (DyOp f a b) = sem a >:: \x->sem b >: \y-> val $ f x y
@@ -56,10 +57,15 @@ sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a . sem b
 
 sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st =:@ k st
-sem (Label i)    = \k->(<@ [(i,k)]).k
+sem (Label i)    = \k->k.(<@ [(i,k)])
 
--- this is too simplistic
-sem (Scope n a)  = \k->sem a (k.leave n).enter n
+sem (Scope n a) = sem' a
+   where sem' a k st = (sem a (k.reset).setup) st
+           where setup = enter n.(>@< sem a (\st->((=:@ st).k.reset) st) dummy).maplabel (.reset)
+                 reset = leave n.maplabel (.setup)
+		 dummy = State empty undefined []
+
+         maplabel f st = State (stack st) (result st) [ (x,f y) | (x,y) <- labels st ]
 
 eval_once :: Expr -> Value
 eval_once e = result $ sem e id initial

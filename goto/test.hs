@@ -95,3 +95,17 @@ pr4 = Scope 10 (
 	Var 1 := Const 3 :::
         Var 2 := DyOp (+) (Val (Var 1)) (Label 42 ::: Const 1)
       )
+
+sc1 = Goto 1 :::
+      Scope 1 (
+         Label 1 :::
+	 Var 0 := Const 5 :::
+	 Val (Var 0)
+      )
+
+sc2 = Scope 1 (
+	 Var 0 := Const 5 :::
+	 Goto 1
+      ) :::
+      Label 1 :::
+      Val (Var 0)
