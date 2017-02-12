@@ -26,14 +26,14 @@ enter n (State stack x labels) = State (stack >< replicate n undefined) x labels
 leave :: Int -> ST
 leave n (State stack x labels) = State (take (length stack - n) stack) x labels
 
--- can't use pattern matching on the argument in these functions
--- as this will force strict evaluation of the state
 (<@) :: State -> [(Int, ST)] -> State
-st <@ tag = State (stack st) (result st) (tag++labels st)
+State stack x labels <@ tag = State stack x (tag++labels)
 
 (>@<) :: State -> State -> State
 st >@< st' = st <@ labels st'
 
+-- can't use pattern matching on the argument in these functions
+-- as this will force strict evaluation of the state
 (=:@) :: State -> State -> State
 st =:@ tag = State (stack st) (result st) (labels tag)
 
@@ -61,10 +61,10 @@ sem (Label i)    = \k->k.(<@ [(i,k)])
 
 sem (Scope n a)  = \k st -> let
                      setup = enter n.(>@< local).maplabel (.reset)
-                     reset = leave n.maplabel (.setup)
+                     reset = leave n.(=:@ st)
                      dummy = State empty undefined []
                      local = sem a (\st->((=:@ st).k.reset) st) dummy
-                   in (sem a (k.reset).setup) st
+                   in (sem a (k.reset).setup) st =:@ (k st >@< (maplabel (.setup) local))
    where
          maplabel f (State stack x tag) = State stack x [ (x,f y) | (x,y) <- tag ]
 

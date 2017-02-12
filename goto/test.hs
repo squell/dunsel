@@ -109,3 +109,7 @@ sc2 = Scope 1 (
       ) :::
       Label 1 :::
       Val (Var 0)
+
+inf = Label 5 ::: Scope 100 (
+	Goto 5
+      )
