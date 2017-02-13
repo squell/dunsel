@@ -61,12 +61,11 @@ sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st =:@ k st
 sem (Label i)    = \k->k.(<@ [(i,k)])
 
 sem (Scope n a)  = \k st -> let
-                     setup = enter n.(>@< local).maplabel (.reset)
-                     reset = leave n.(=:@ extern)
+                     setup = enter n.(>@< local).(\st->maplabel (.reset st) st)
+                     reset = \st->leave n.(=:@ st)
                      dummy = State empty undefined []
-                     local = sem a (\st->((=:@ st).k.reset) st) dummy
-                     extern= k st >@< maplabel (.setup) local
-                   in (sem a (k.reset).setup) st
+                     local = sem a (\st->((=:@ st).k.reset st) st) dummy
+                   in (sem a (k.reset st).setup) st =:@ (k st >@< maplabel (.setup) local)
    where
          maplabel f (State stack x tag) = State stack x [ (x,f y) | (x,y) <- tag ]
 
