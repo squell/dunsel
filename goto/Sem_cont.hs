@@ -49,9 +49,10 @@ sem Skip         = (.val undefined)
 sem (Const i)    = (.val i)
 sem (Var i := e) = sem e >: put i
 sem (Val (Var i))= (.get i)
--- note: the order of the arguments to >@< is crucial
 sem (If a b c)   = sem a >:: \x k st->(sem $ if x/=0 then b else c) k st =:@ (sem b k st >@< sem c k st)
-sem (While a b)  = sem (If a (b:::While a b) Skip)
+--sem (While a b)  = sem $ If a (b:::While a b) Skip
+sem (While a b)  = sem a >:: \x k st->(sem $ if x/=0 then b:::While a b else Skip) k st =:@ (body k >@< k st)
+   where body k = sem b (\st->((=:@ st).sem (While a b) k) st) $ State empty undefined []
 sem (DyOp f a b) = sem a >:: \x->sem b >: \y-> val $ f x y
 sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a . sem b
