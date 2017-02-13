@@ -144,3 +144,12 @@ inf2 = Label 5 :::
          Skip
       ) :::
        Goto 5
+
+weird = Scope 10 $
+        Var 0 := Const 5 :::
+        Var 1 := (DyOp (+) (Val (Var 0)) (Label 1 ::: Const 1)) :::
+	If (Val (Var 0)) (
+           Var 0 := Const 0 :::
+	   Goto 1
+	) Skip :::
+	Val (Var 1)
