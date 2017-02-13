@@ -68,6 +68,14 @@ wh5 = Scope 10 (
        Val (Var 2)
       )
 
+wh6 = If (Const 0) (
+         While (Const 0) (Label 1)
+      ) (
+         While (Const 0) (Label 2) :::
+	 Goto 1
+      ) :::
+      Const 120
+
 pr1 = Scope 10 (
        Var 1 := Const 5 :::
        Var 2 := DyOp (+) (Val (Var 1)) (Const 1)
@@ -110,6 +118,29 @@ sc2 = Scope 1 (
       Label 1 :::
       Val (Var 0)
 
-inf = Label 5 ::: Scope 100 (
-	Goto 5
+sc3 = Scope 1 $
+      Var 0 := Const 0 :::
+      Label 1 :::
+      Var 0 := DyOp(+) (Val (Var 0)) (Const 1) :::
+      Goto 2 :::
+      Scope 100 (
+	Label 2 :::
+        Var 0 := DyOp(+) (Val (Var 0)) (Const 10) :::
+        Goto 3
+      ) :::
+      Label 3 :::
+      Var 0 := DyOp(+) (Val (Var 0)) (Const 100) :::
+      If (DyOp(-) (Val (Var 0)) (Const 222)) (
+	  Goto 1
+      ) Skip :::
+      Val (Var 0)
+
+inf1 = Label 5 ::: Scope 100 (
+       Goto 5
       )
+
+inf2 = Label 5 :::
+       Scope 100 (
+         Skip
+      ) :::
+       Goto 5
