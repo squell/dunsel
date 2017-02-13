@@ -61,10 +61,11 @@ sem (Label i)    = \k->k.(<@ [(i,k)])
 
 sem (Scope n a)  = \k st -> let
                      setup = enter n.(>@< local).maplabel (.reset)
-                     reset = leave n.(=:@ st)
+                     reset = leave n.(=:@ extern)
                      dummy = State empty undefined []
                      local = sem a (\st->((=:@ st).k.reset) st) dummy
-                   in (sem a (k.reset).setup) st =:@ (k st >@< (maplabel (.setup) local))
+                     extern= k st >@< maplabel (.setup) local
+                   in (sem a (k.reset).setup) st
    where
          maplabel f (State stack x tag) = State stack x [ (x,f y) | (x,y) <- tag ]
 
