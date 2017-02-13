@@ -59,13 +59,14 @@ sem (a ::: b)    = sem a . sem b
 sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st =:@ k st
 sem (Label i)    = \k->k.(<@ [(i,k)])
 
-sem (Scope n a) = sem' a
-   where sem' a k st = (sem a (k.reset).setup) st
-           where setup = enter n.(>@< sem a (\st->((=:@ st).k.reset) st) dummy).maplabel (.reset)
-                 reset = leave n.maplabel (.setup)
-		 dummy = State empty undefined []
-
-         maplabel f st = State (stack st) (result st) [ (x,f y) | (x,y) <- labels st ]
+sem (Scope n a)  = \k st -> let
+                     setup = enter n.(>@< local).maplabel (.reset)
+                     reset = leave n.maplabel (.setup)
+                     dummy = State empty undefined []
+                     local = sem a (\st->((=:@ st).k.reset) st) dummy
+                   in (sem a (k.reset).setup) st
+   where
+         maplabel f (State stack x tag) = State stack x [ (x,f y) | (x,y) <- tag ]
 
 eval_once :: Expr -> Value
 eval_once e = result $ sem e id initial
