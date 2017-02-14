@@ -22,6 +22,15 @@ step (Val (Var i))       s = (Const (index s i), s)
 step (If (Const 0) b c)  s = (c,s)
 step (If (Const _) b c)  s = (b,s)
 
+-- enforce right-associativy
+step ((a:::b):::c)       s = (a:::(b:::c), s)
+
+-- handles forward-and-up jumps (skips; breaks)
+step (Goto l:::Label k)  s = (Goto l:::(Label k:::Skip), s)
+step (Goto l:::(Label k:::z)) s
+  | l == k                 = (z, s)
+step (Goto l:::(a:::b))  s = (Goto l:::b, s)
+
 step (If a b c)          s = let (a',s') = step a s in (If a' b c, s')
 step (While a b)         s = (If a (b:::While a b) Skip, s)
 step (DyOp f (Const x) (Const y)) s 
