@@ -1,6 +1,9 @@
 module AST
 where
 
+instance Show (a->b)
+  where show x = "<#f>"
+
 data Expr = 
 	Scope Int Expr |
 	Skip |
@@ -14,8 +17,10 @@ data Expr =
 	Expr ::: Expr |
 	Label Int |
 	Goto Int
+  deriving Show
 	
 newtype Var = Var Int 
+  deriving Show
 
 type Value = Int
 
