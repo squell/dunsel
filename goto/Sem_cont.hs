@@ -2,7 +2,8 @@ module Sem_cont
 where
 
 import Prelude hiding (length, take, replicate)
-import Data.Sequence
+import qualified Prelude (length)
+import Data.Sequence hiding (drop)
 import Data.Maybe
 import AST
 
@@ -57,17 +58,21 @@ sem (DyOp f a b) = sem a >:: \x->sem b >: \y-> val $ f x y
 sem (UnOp f a)   = sem a >: \x->val $ f x
 sem (a ::: b)    = sem a . sem b
 
-sem (Goto i)     = \k st->fromJust (lookup i (labels st)) st =:@ k st
+sem (Goto i)     = \k st->seq (stack st) fromJust (lookup i (labels st)) st =:@ k st
 sem (Label i)    = \k->k.(<@ [(i,k)])
 
 sem (Scope n a)  = \k st -> let
-                     setup = enter n.(>@< local).(\st->maplabel (.reset st) st)
-                     reset = \st->leave n.(=:@ st)
+                     --setup = enter n.(>@< local).(\st->maplabel (.reset st) st)
+                     --reset = \st->leave n.(=:@ st)
+                     setup = enter n.(>@< local).(\st->st>@<maplabel (.reset st) st)
+                     reset = \st->leave n.crop st
                      dummy = State empty undefined []
                      local = sem a (\st->((=:@ st).k.reset st) st) dummy
                    in (sem a (k.reset st).setup) st =:@ (k st >@< maplabel (.setup) local)
    where
          maplabel f (State stack x tag) = State stack x [ (x,f y) | (x,y) <- tag ]
+         crop st st'@(State stack x tag)= State stack x $ drop (len st' - len st) tag
+         len (State stack x tag) = Prelude.length tag
 
 eval_once :: Expr -> Value
 eval_once e = result $ sem e id initial
