@@ -1,7 +1,9 @@
 import AST
 import Sem_monadic as M
-import Sem_state as S
+import Sem_state as B
 import Sem_cont as K
+import Sem_arrow as A
+import Sem_struct as S
 
 wh1 = Scope 10 (
        Var 1 := Const 5 :::
