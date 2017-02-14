@@ -31,6 +31,15 @@ step (Goto l:::(Label k:::z)) s
   | l == k                 = (z, s)
 step (Goto l:::(a:::b))  s = (Goto l:::b, s)
 
+-- handles well-behaved backward jumps
+step (Label l:::z)       s = (While (Const 1) (z:::Goto (-l):::Label l) ::: Label (-l), s)
+
+-- provide an exception to the first goto-rule, preserving values a bit longer
+step (Const n:::(Goto l:::Label k)) s
+  | l == k                 = (Const n, s)
+step (Const _:::Const n) s = (Const n, s)
+step (Const n:::a)       s = let (a',s') = step a s in (Const n:::a', s')
+
 step (If a b c)          s = let (a',s') = step a s in (If a' b c, s')
 step (While a b)         s = (If a (b:::While a b) Skip, s)
 step (DyOp f (Const x) (Const y)) s 
@@ -39,7 +48,6 @@ step (DyOp f a b) s       = let (a',s')  = step a s -- teehees
                                 (b',s'') = step b s' in (DyOp f a' b', s'')
 step (UnOp f (Const n))  s = (Const (f n), s)
 step (UnOp f a)          s = let (a',s') = step a s in (UnOp f a', s')
-step (Const _ ::: b)     s = (b,s)
 step (a ::: b)           s = let (a',s') = step a s in (a' ::: b, s')
 
 -- this is ugly
