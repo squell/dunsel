@@ -44,11 +44,6 @@ xor_key() {
 	echo $((${1} ^ ${17}))
 }
 
-# s-box definition
-lookup() {
-	eval echo \${$(($1+2))}
-}
-
 # Galois field multiplications modulo AES polynomial
 mul() {
 	a=$1
