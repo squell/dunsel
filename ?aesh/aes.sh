@@ -44,22 +44,14 @@ xor_key() {
 	echo $((${1} ^ ${17}))
 }
 
-# s-box definition
-lookup() {
-	eval echo \${$(($1+2))}
-}
-
 # Galois field multiplications modulo AES polynomial
 mul() {
-	a=$1
-	b=$2
-	ret=0
-	for i in `seq 8`; do
-		ret=$(( ret ^ ((b & 1) * a) ))
-		b=$(( b >> 1 ))
-		a=$(( (a << 1) ^ (( (a << 1) >= 0x100) * 0x11b) ))
+	acc=0 x=$1
+	for i in `seq 0 7`; do
+		acc=$(( acc ^ x&-($2>>i&1) ))
+		x=$(( x<<1^(0x7f - x >> 8)&0x11b ))
 	done
-	echo "$ret"
+	echo $acc
 }
 
 byte_sub() {
