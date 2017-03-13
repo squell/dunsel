@@ -121,7 +121,7 @@ passphrase() {
 	case "$PWDTYPE" in
 	hex) echo -n "$1";;
 	md5) echo -n "$1" | md5sum;;
-	esac | tr -cd [0-9a-f] | xxd -p -r | from_bytes
+	esac | tr -cd '[0-9a-f]' | xxd -p -r | from_bytes
 }
 
 key=`passphrase "$1"`
